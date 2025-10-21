@@ -46,8 +46,12 @@ class King(Piece):
         options = [(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)]
         #if not(self.has_moved): return #рокировка
         for step in options:
-            if within_the_board(row + step[0], col + step[1]):
-                moves.append((row + step[0], col + step[1]))
+            e_row, e_col = row + step[0], col + step[1]
+            if within_the_board(e_row, e_col):
+                target = board[e_row][e_col]
+                if target is None or target.color != self.color:
+                    moves.append((e_row, e_col))
+
         return moves
 
 class Queen(Piece):
@@ -72,7 +76,9 @@ class Knight(Piece):
         for step in options:
             e_row, e_col = row + step[0], col + step[1]
             if within_the_board(e_row, e_col):
-                moves.append((e_row, e_col))
+                target = board[e_row][e_col]
+                if target is None or target.color != self.color:
+                    moves.append((e_row, e_col))
         return moves
 
 class Rook(Piece):

@@ -42,7 +42,7 @@ class ChessGUI:
         colors = [(235, 235, 208), (119, 149, 86)]
         for row in range(8):
             for col in range(8):
-                color = colors[(row + col + 1) % 2]
+                color = colors[(row + col) % 2]
                 pygame.draw.rect(self.screen, color,
                                  ((col+1) * self.cell_size, (row+1) * self.cell_size,
                                   self.cell_size, self.cell_size))
@@ -67,9 +67,10 @@ class ChessGUI:
             piece = self.board.board[board_row][board_col]
             if piece and piece.color == self.board.current_player:
                 self.selected_piece = (board_row, board_col)
+    def close(self):
+        pygame.quit()
+    def run(self, runn):
 
-    def run(self):
-        runn = True
         while runn:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -81,4 +82,4 @@ class ChessGUI:
             self.draw_board()
             pygame.display.flip()
 
-        pygame.quit()
+        self.close()

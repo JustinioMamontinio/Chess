@@ -1,4 +1,5 @@
 import figures
+import sys
 class ChessBoard:
     def __init__(self): #Задаем базовые настройки доски и игры в целом
         self.board = self.set_starting_board()
@@ -24,11 +25,42 @@ class ChessBoard:
         return attacked
 
     def find_king(self, color):
+        print(f"=== ПОИСК КОРОЛЯ {color} ===")
+        king_count = 0
         for row in range(8):
             for col in range(8):
                 piece = self.board[row][col]
-                if piece != None and piece.color == color and (piece.name == 'wK' or piece.name == 'bK'):
-                    return (row,col)
+                if piece is not None:
+                    print(f"Позиция ({row}, {col}): {piece.name} (цвет: {piece.color})")
+                    if piece.color == color:
+                        print(f"  -> Фигура нашего цвета! Имя: '{piece.name}'")
+                        if hasattr(piece, 'name'):
+                            print(f"  -> Имя фигуры: '{piece.name}'")
+                        if isinstance(piece, figures.King):
+                            print(f"  -> ЭТО КОРОЛЬ! Найден на ({row}, {col})")
+                            king_count += 1
+                            return (row, col)
+
+        print(f"=== ПОИСК ЗАВЕРШЕН. Найдено королей: {king_count} ===")
+        if king_count == 0:
+            print("КРИТИЧЕСКАЯ ОШИБКА: Король не найден!")
+            # Выведем всю доску для отладки
+            self._debug_print_full_board()
+        return None
+
+    def _debug_print_full_board(self):
+        """Выводит всю доску в читаемом виде"""
+        print("=== ПОЛНОЕ СОСТОЯНИЕ ДОСКИ ===")
+        for row in range(8):
+            line = f"{8 - row}: "
+            for col in range(8):
+                piece = self.board[row][col]
+                if piece is None:
+                    line += ".  "
+                else:
+                    line += f"{piece.name} "
+            print(line)
+        print("    a  b  c  d  e  f  g  h")
 
 
 
@@ -38,8 +70,8 @@ class ChessBoard:
             board[6][col] = figures.Pawn("white")
             board[1][col] = figures.Pawn("black")
 
-        board[7][3] = figures.King("white")
-        board[0][3] = figures.King("black")
+        board[7][4] = figures.King("white")
+        board[0][4] = figures.King("black")
 
         board[7][1] = figures.Knight("white")
         board[7][6] = figures.Knight("white")
@@ -56,21 +88,27 @@ class ChessBoard:
         board[0][2] = figures.Bishop("black")
         board[0][5] = figures.Bishop("black")
 
-        board[7][4] = figures.Queen("white")
-        board[0][4] = figures.Queen("black")
+        board[7][3] = figures.Queen("white")
+        board[0][3] = figures.Queen("black")
         return board
 
     def make_move(self, start, end): #делаем ход
+
         s_row, s_col = start  # Стартовая позиция
         e_row, e_col = end  # Конечная позиция
         piece = self.board[s_row][s_col] #Определяем фигуру
+        print(f"Попытка хода: {start} -> {end}, фигура: {piece.name if piece else 'None'}")
         if piece is None: return
-        print(piece.name)
         if self.current_player != piece.color: return
+        print(f"Текущий игрок: {self.current_player}")
+        self.find_king(self.current_player)
+        enemy_color = 'black' if self.current_player == 'white' else 'white'
         last_move = self.move_history[-1] if self.move_history else None
         possible_moves = figures.real_moves(piece, self.board, (s_row, s_col), last_move)
 
         if (e_row, e_col) in possible_moves:
+            if not self._is_safe_move(start, end):
+                return False  # Ход оставляет короля под шахом
             if piece.name[1] == "p" and self.board[e_row][e_col] == None and abs(e_col - s_col) == 1: #Взятие на проходе
                 self.board[s_row][e_col] = None
             self.board[e_row][e_col] = piece
@@ -78,9 +116,61 @@ class ChessBoard:
             if hasattr(piece, 'has_moved'): piece.has_moved = True #Если у объекта есть такой атрибут, вернет True
             self.move_history.append((piece, start, end))
             self.last_move = (piece, start, end)
+            self._update_attacked_squares()
+            # Проверяем шах и мат для нового текущего игрока
+            #self.check_king(enemy_color)
+            if self.checkmate(enemy_color):
+                print('Игра окончена')
+                sys.exit()
             self.current_player = "black" if self.current_player == "white" else "white" #Меняем активного игрока
+
             return True
         return False
+
+    def check_king(self, color):
+        pos = self.find_king(color)
+        row, col = pos[0], pos[1]
+        king = self.board[row][col]
+        self._update_attacked_squares()
+        if color == 'white':
+            is_in_check = (row, col) in self.attacked_squares['black']
+        else:
+            is_in_check = (row, col) in self.attacked_squares['white']
+        if hasattr(king, 'check'): king.check = is_in_check
+        return is_in_check
+
+    def checkmate(self, color):
+        if not self.check_king(color):
+            return False
+        for start_row in range(8):
+            for start_col in range(8):
+                piece = self.board[start_row][start_col]
+                if piece and piece.color == color:
+                    moves = figures.real_moves(piece, self.board, (start_row, start_col), last_move=None)
+
+                    for end_row, end_col in moves:
+                        # Пробуем сделать ход
+                        if self._is_safe_move((start_row, start_col), (end_row, end_col)):
+                            return False  # Нашелся безопасный ход - не мат
+
+        print(f'Мат! Победили {"белые" if color == "black" else "черные"}')
+        return True
+
+    def _is_safe_move(self, start, end): #не оставляет ли ход короля под шахом
+        s_row, s_col = start
+        e_row, e_col = end
+        piece = self.board[s_row][s_col]
+        color = piece.color
+        original_piece = self.board[e_row][e_col]
+
+        self.board[e_row][e_col] = piece #Временный ход
+        self.board[s_row][s_col] = None
+        still_in_check = self.check_king(color)
+
+        self.board[s_row][s_col] = piece # Откатываем ход
+        self.board[e_row][e_col] = original_piece
+
+        return not still_in_check
 
     def get_board(self):
         return self.board
