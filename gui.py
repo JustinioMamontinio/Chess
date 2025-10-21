@@ -1,3 +1,5 @@
+import os
+
 import pygame
 from chess_board import ChessBoard
 from figures import Piece
@@ -13,11 +15,11 @@ class ChessGUI:
 
     def load_images(self):
         self.piece_images = {}
-        pieces = ['wp', 'bp', 'wK', 'bK', 'wk', 'bk', 'wr', 'br', 'wb', 'bb', 'wq', 'bq']
+        pieces = ['wp', 'bp', 'wK', 'bK', 'wn', 'bn', 'wr', 'br', 'wb', 'bb', 'wq', 'bq']
 
         for piece_name in pieces:
             try:
-                image_path = os.path.join('images', f'{piece_name}.png')
+                image_path = os.path.join('images', f'{piece_name}.svg')
                 image = pygame.image.load(image_path)
                 self.piece_images[piece_name] = pygame.transform.scale(
                     image, (self.cell_size, self.cell_size))

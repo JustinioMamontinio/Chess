@@ -14,13 +14,21 @@ class ChessBoard:
 
     def _get_attacked_squares(self, color): #Получаем  поля, которые находятся под ударом
         attacked = set()
+        last_move = self.move_history[-1] if self.move_history else None
         for row in range(8):
             for col in range(8):
                 piece = self.board[row][col]
                 if piece != None and piece.color == color:
-                    moves = figures.real_moves(piece, self.board, (row, col))
+                    moves = figures.real_moves(piece, self.board, (row, col), last_move)
                     attacked.update(moves)
         return attacked
+
+    def find_king(self, color):
+        for row in range(8):
+            for col in range(8):
+                piece = self.board[row][col]
+                if piece != None and piece.color == color and (piece.name == 'wK' or piece.name == 'bK'):
+                    return (row,col)
 
 
 
@@ -57,14 +65,19 @@ class ChessBoard:
         e_row, e_col = end  # Конечная позиция
         piece = self.board[s_row][s_col] #Определяем фигуру
         if piece is None: return
+        print(piece.name)
         if self.current_player != piece.color: return
-        possible_moves = figures.real_moves(piece, self.board, (s_row, s_col))
+        last_move = self.move_history[-1] if self.move_history else None
+        possible_moves = figures.real_moves(piece, self.board, (s_row, s_col), last_move)
 
         if (e_row, e_col) in possible_moves:
+            if piece.name[1] == "p" and self.board[e_row][e_col] == None and abs(e_col - s_col) == 1: #Взятие на проходе
+                self.board[s_row][e_col] = None
             self.board[e_row][e_col] = piece
             self.board[s_row][s_col] = None
             if hasattr(piece, 'has_moved'): piece.has_moved = True #Если у объекта есть такой атрибут, вернет True
             self.move_history.append((piece, start, end))
+            self.last_move = (piece, start, end)
             self.current_player = "black" if self.current_player == "white" else "white" #Меняем активного игрока
             return True
         return False
