@@ -25,42 +25,12 @@ class ChessBoard:
         return attacked
 
     def find_king(self, color):
-        print(f"=== ПОИСК КОРОЛЯ {color} ===")
-        king_count = 0
         for row in range(8):
             for col in range(8):
                 piece = self.board[row][col]
-                if piece is not None:
-                    print(f"Позиция ({row}, {col}): {piece.name} (цвет: {piece.color})")
-                    if piece.color == color:
-                        print(f"  -> Фигура нашего цвета! Имя: '{piece.name}'")
-                        if hasattr(piece, 'name'):
-                            print(f"  -> Имя фигуры: '{piece.name}'")
+                if piece is not None and piece.color == color:
                         if isinstance(piece, figures.King):
-                            print(f"  -> ЭТО КОРОЛЬ! Найден на ({row}, {col})")
-                            king_count += 1
                             return (row, col)
-
-        print(f"=== ПОИСК ЗАВЕРШЕН. Найдено королей: {king_count} ===")
-        if king_count == 0:
-            print("КРИТИЧЕСКАЯ ОШИБКА: Король не найден!")
-            # Выведем всю доску для отладки
-            self._debug_print_full_board()
-        return None
-
-    def _debug_print_full_board(self):
-        """Выводит всю доску в читаемом виде"""
-        print("=== ПОЛНОЕ СОСТОЯНИЕ ДОСКИ ===")
-        for row in range(8):
-            line = f"{8 - row}: "
-            for col in range(8):
-                piece = self.board[row][col]
-                if piece is None:
-                    line += ".  "
-                else:
-                    line += f"{piece.name} "
-            print(line)
-        print("    a  b  c  d  e  f  g  h")
 
 
 
@@ -97,10 +67,9 @@ class ChessBoard:
         s_row, s_col = start  # Стартовая позиция
         e_row, e_col = end  # Конечная позиция
         piece = self.board[s_row][s_col] #Определяем фигуру
-        print(f"Попытка хода: {start} -> {end}, фигура: {piece.name if piece else 'None'}")
+
         if piece is None: return
         if self.current_player != piece.color: return
-        print(f"Текущий игрок: {self.current_player}")
         self.find_king(self.current_player)
         enemy_color = 'black' if self.current_player == 'white' else 'white'
         last_move = self.move_history[-1] if self.move_history else None
@@ -117,8 +86,6 @@ class ChessBoard:
             self.move_history.append((piece, start, end))
             self.last_move = (piece, start, end)
             self._update_attacked_squares()
-            # Проверяем шах и мат для нового текущего игрока
-            #self.check_king(enemy_color)
             if self.checkmate(enemy_color):
                 print('Игра окончена')
                 sys.exit()
