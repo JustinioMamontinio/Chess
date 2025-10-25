@@ -8,6 +8,7 @@ class ChessBoard:
         self.check = False
         self.attacked_squares = {"white":set(), "black":set()}
         self._update_attacked_squares()
+        self.promotion_pending = None
 
     def _update_attacked_squares(self):
         self.attacked_squares["white"] = self._get_attacked_squares("white")
@@ -25,42 +26,12 @@ class ChessBoard:
         return attacked
 
     def find_king(self, color):
-        print(f"=== ПОИСК КОРОЛЯ {color} ===")
-        king_count = 0
         for row in range(8):
             for col in range(8):
                 piece = self.board[row][col]
-                if piece is not None:
-                    print(f"Позиция ({row}, {col}): {piece.name} (цвет: {piece.color})")
-                    if piece.color == color:
-                        print(f"  -> Фигура нашего цвета! Имя: '{piece.name}'")
-                        if hasattr(piece, 'name'):
-                            print(f"  -> Имя фигуры: '{piece.name}'")
+                if piece is not None and piece.color == color:
                         if isinstance(piece, figures.King):
-                            print(f"  -> ЭТО КОРОЛЬ! Найден на ({row}, {col})")
-                            king_count += 1
                             return (row, col)
-
-        print(f"=== ПОИСК ЗАВЕРШЕН. Найдено королей: {king_count} ===")
-        if king_count == 0:
-            print("КРИТИЧЕСКАЯ ОШИБКА: Король не найден!")
-            # Выведем всю доску для отладки
-            self._debug_print_full_board()
-        return None
-
-    def _debug_print_full_board(self):
-        """Выводит всю доску в читаемом виде"""
-        print("=== ПОЛНОЕ СОСТОЯНИЕ ДОСКИ ===")
-        for row in range(8):
-            line = f"{8 - row}: "
-            for col in range(8):
-                piece = self.board[row][col]
-                if piece is None:
-                    line += ".  "
-                else:
-                    line += f"{piece.name} "
-            print(line)
-        print("    a  b  c  d  e  f  g  h")
 
 
 
@@ -97,10 +68,9 @@ class ChessBoard:
         s_row, s_col = start  # Стартовая позиция
         e_row, e_col = end  # Конечная позиция
         piece = self.board[s_row][s_col] #Определяем фигуру
-        print(f"Попытка хода: {start} -> {end}, фигура: {piece.name if piece else 'None'}")
+        print(f"Ход: {start} -> {end}, фигура: {piece.name if piece else 'None'}")
         if piece is None: return
         if self.current_player != piece.color: return
-        print(f"Текущий игрок: {self.current_player}")
         self.find_king(self.current_player)
         enemy_color = 'black' if self.current_player == 'white' else 'white'
         last_move = self.move_history[-1] if self.move_history else None
@@ -109,23 +79,63 @@ class ChessBoard:
         if (e_row, e_col) in possible_moves:
             if not self._is_safe_move(start, end):
                 return False  # Ход оставляет короля под шахом
-            if piece.name[1] == "p" and self.board[e_row][e_col] == None and abs(e_col - s_col) == 1: #Взятие на проходе
+            if (isinstance(piece, figures.Pawn) and last_move and isinstance(last_move[0], figures.Pawn) and abs(e_col - s_col) == 1
+                    and abs(last_move[2][0] - last_move[1][0]) == 2 and last_move[2][0] == s_row): #Взятие на проходе
                 self.board[s_row][e_col] = None
+            if isinstance(piece, figures.King) and abs(e_col - s_col) == 2 and not(piece.check): #Рокировка
+                if e_col - s_col == -2:
+                    self.board[s_row][3] = self.board[s_row][0]
+                    self.board[s_row][0] = None
+                elif e_col - s_col == 2:
+                    self.board[s_row][5] = self.board[s_row][7]
+                    self.board[s_row][7] = None
             self.board[e_row][e_col] = piece
             self.board[s_row][s_col] = None
             if hasattr(piece, 'has_moved'): piece.has_moved = True #Если у объекта есть такой атрибут, вернет True
             self.move_history.append((piece, start, end))
             self.last_move = (piece, start, end)
+            if isinstance(piece, figures.Pawn) and (e_row == 0 or e_row == 7):
+                self.promotion_pending = (e_row, e_col, piece.color)
+            else:
+                self.current_player = "black" if self.current_player == "white" else "white"
             self._update_attacked_squares()
-            # Проверяем шах и мат для нового текущего игрока
-            #self.check_king(enemy_color)
-            if self.checkmate(enemy_color):
+            pos_enemy_king = self.find_king(enemy_color)
+            if self.board[pos_enemy_king[0]][pos_enemy_king[1]] in self.attacked_squares[piece.color]: print(f'{enemy_color} король попал под шах')
+            if self.checkmate(enemy_color) or self.stalemate(enemy_color):
                 print('Игра окончена')
-                sys.exit()
-            self.current_player = "black" if self.current_player == "white" else "white" #Меняем активного игрока
 
             return True
         return False
+
+    def promote_pawn(self, piece_type):
+        row, col, color = self.promotion_pending
+        if piece_type == "queen":
+            new_piece = figures.Queen(color)
+        elif piece_type == "rook":
+            new_piece = figures.Rook(color)
+        elif piece_type == "bishop":
+            new_piece = figures.Bishop(color)
+        elif piece_type == "knight":
+            new_piece = figures.Knight(color)
+        else:
+            new_piece = figures.Queen(color)  # По умолчанию ферзь
+
+        self.board[row][col] = new_piece
+        self.promotion_pending = None
+        self.current_player = "black" if self.current_player == "white" else "white"
+        return True
+
+    def stalemate(self, color):
+
+        for row in range(8):
+            for col in range(8):
+                piece = self.board[row][col]
+                if piece and piece.color == color:
+                    moves = (figures.real_moves(piece, self.board, (row, col), self.last_move))
+                    for i in moves:
+                        if self._is_safe_move((row, col), i): return False
+        print(f"Пат, {color} нечем ходить")
+        return True
 
     def check_king(self, color):
         pos = self.find_king(color)
@@ -136,7 +146,10 @@ class ChessBoard:
             is_in_check = (row, col) in self.attacked_squares['black']
         else:
             is_in_check = (row, col) in self.attacked_squares['white']
-        if hasattr(king, 'check'): king.check = is_in_check
+        if hasattr(king, 'check'):
+            king.check = is_in_check
+        if is_in_check:
+            print(f'{color} король попал под шах')
         return is_in_check
 
     def checkmate(self, color):

@@ -17,7 +17,7 @@ class Pawn(Piece):
 
         if within_the_board(row + direction, col):
             if self.has_moved == False: #первый ход пешки
-                if board[row + 2 * direction][col] == None:
+                if board[row + 2 * direction][col] == None and board[row + direction][col] == None:
                     moves.append((row + 2 * direction, col))
             if board[row + direction][col] == None: #обычный ход
                 moves.append((row + direction, col))
@@ -44,13 +44,21 @@ class King(Piece):
         moves = []
         row, col = position
         options = [(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)]
-        #if not(self.has_moved): return #рокировка
         for step in options:
             e_row, e_col = row + step[0], col + step[1]
             if within_the_board(e_row, e_col):
                 target = board[e_row][e_col]
-                if target is None or target.color != self.color:
+                if (target is None or target.color != self.color):
                     moves.append((e_row, e_col))
+        if not(self.has_moved):
+            field = board[row]
+            for i in range(8):
+                if i == 4: continue
+                if i == 0 or i == 7:
+                    rook = field[i]
+                    if rook != None and not(rook.has_moved):
+                        if i == 0 and field[1] == field[2] == field[3] == None: moves.append((row, col - 2))
+                        elif i == 7 and field[5] == field[6] == None: moves.append((row, col + 2))
 
         return moves
 
@@ -72,7 +80,7 @@ class Knight(Piece):
     def move(self, board, position, last_move=None):
         moves = []
         row, col = position
-        options = [(2, -1), (2, 1), (1, 2), (1, -2), (-2, 1), (-2, -1), (-1, -2), (1, -2)]
+        options = [(2, 1), (2, -1), (1, 2), (1, -2), (-2, 1), (-2, -1), (-1, 2), (-1, -2)]
         for step in options:
             e_row, e_col = row + step[0], col + step[1]
             if within_the_board(e_row, e_col):
@@ -126,14 +134,3 @@ def real_moves(piece, board, pos, last_move):
 
 def within_the_board(row, col):
     return 0 <= row <= 7 and 0 <= col <= 7
-
-def check_enemy_king(self, board, position):
-    row, col = position[0], position[1]
-    direction = -1 if self.color == "white" else 1
-    diagonal = [(direction, -1), (direction, 1)]
-    for dr, dc in diagonal:
-        new_r, new_c = row + dr, col + dc
-        if within_the_board(new_r, new_c):
-            target = board[new_r][new_c]
-            if target != None and target.color != self.color and hasattr(target, "check"):
-                target.check = True
