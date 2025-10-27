@@ -37,30 +37,30 @@ class Pawn(Piece):
 class King(Piece):
     def __init__(self, color):
         super().__init__(color)
-        self.name = "wK" if color == "white" else "bK"
-        self.has_moved = False
-        self.check = False
+        self.has_moved = False  # добавляем атрибут
+
     def move(self, board, position, last_move=None):
         moves = []
         row, col = position
-        options = [(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)]
-        for step in options:
-            e_row, e_col = row + step[0], col + step[1]
-            if within_the_board(e_row, e_col):
-                target = board[e_row][e_col]
-                if (target is None or target.color != self.color):
-                    moves.append((e_row, e_col))
-        if not(self.has_moved):
+        options = [(1,0),(1,1),(0,1),(-1,1),(-1,0),(-1,-1),(0,-1),(1,-1)]
+        for dr, dc in options:
+            r, c = row + dr, col + dc
+            if within_the_board(r, c):
+                target = board[r][c]
+                if target is None or target.color != self.color:
+                    moves.append((r, c))
+        if not self.has_moved:
             field = board[row]
-            for i in range(8):
-                if i == 4: continue
-                if i == 0 or i == 7:
-                    rook = field[i]
-                    if rook != None and not(rook.has_moved):
-                        if i == 0 and field[1] == field[2] == field[3] == None: moves.append((row, col - 2))
-                        elif i == 7 and field[5] == field[6] == None: moves.append((row, col + 2))
-
+            rook = field[0]
+            if isinstance(rook, Rook) and not rook.has_moved:
+                if field[1] is None and field[2] is None and field[3] is None:
+                    moves.append((row, col - 2))
+            rook = field[7]
+            if isinstance(rook, Rook) and not rook.has_moved:
+                if field[5] is None and field[6] is None:
+                    moves.append((row, col + 2))
         return moves
+
 
 class Queen(Piece):
     def __init__(self, color):

@@ -10,6 +10,9 @@ class ChessBoard:
         self._update_attacked_squares()
         self.promotion_pending = None
 
+    def reset(self):
+        self.__init__()
+
     def _update_attacked_squares(self):
         self.attacked_squares["white"] = self._get_attacked_squares("white")
         self.attacked_squares["black"] = self._get_attacked_squares("black")
@@ -63,12 +66,11 @@ class ChessBoard:
         board[0][3] = figures.Queen("black")
         return board
 
-    def make_move(self, start, end): #делаем ход
+    def make_move(self, start, end):
 
         s_row, s_col = start  # Стартовая позиция
         e_row, e_col = end  # Конечная позиция
         piece = self.board[s_row][s_col] #Определяем фигуру
-        print(f"Ход: {start} -> {end}, фигура: {piece.name if piece else 'None'}")
         if piece is None: return
         if self.current_player != piece.color: return
         self.find_king(self.current_player)
@@ -168,6 +170,7 @@ class ChessBoard:
 
         print(f'Мат! Победили {"белые" if color == "black" else "черные"}')
         return True
+
 
     def _is_safe_move(self, start, end): #не оставляет ли ход короля под шахом
         s_row, s_col = start

@@ -1,17 +1,16 @@
-from gui import ChessGUI
-import pygame
+from lichess_bot import LichessBot
+
+def load_token():
+    with open('bot_credentials.txt', 'r', encoding='utf-8-sig') as f:
+        for line in f:
+            if line.startswith('BOT_TOKEN='):
+                return line.split('=', 1)[1].strip()
+    return None
 
 if __name__ == "__main__":
-    pygame.init()
-    gui = ChessGUI()
-    gui.run()
-
-
-#Превращение пешки в любую фигуру
-#Пат
-#Бот (1 сложность)
-#Бот (2 сложность)
-#Бот (3 сложность)
-#Сеть
-#Подсветка выбранной фигуры
-#Варианты хода
+    token = load_token()
+    if not token:
+        print("Токен не найден в bot_credentials.txt")
+        exit(1)
+    bot = LichessBot("very-easy")
+    bot.run()
